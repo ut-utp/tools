@@ -1,0 +1,10 @@
+[package]
+name = "obj-conv"
+version = "0.1.0"
+authors = ["Rahul Butani <rr.butani@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+lc3-isa = { git = "https://github.com/ut-utp/prototype.git", branch = "feat-tui" }
+clap = "2.33.0"
+byteorder = "1.3.2"
