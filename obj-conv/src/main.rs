@@ -1,10 +1,14 @@
-use byteorder::{LittleEndian, ReadBytesExt};
 use clap::{App, AppSettings, Arg};
 use lc3_isa::{Addr, Instruction, Word};
 
 use std::convert::TryFrom;
 use std::fs::File;
-use std::io::prelude::*;
+use std::path::Path;
+
+pub type Loadable = (Addr, Word);
+
+pub mod file_formats;
+use file_formats::{ObjFileFormat, Lc3Tools, Lumetta};
 
 macro_rules! cargo_env {
     ($cargo_env_var:ident) => {
@@ -12,7 +16,7 @@ macro_rules! cargo_env {
     };
 }
 
-pub fn args() -> App<'static, 'static> {
+fn args() -> App<'static, 'static> {
     App::new(cargo_env!(PKG_NAME))
         .setting(AppSettings::ArgRequiredElseHelp)
         .version(cargo_env!(PKG_VERSION))
@@ -29,77 +33,6 @@ pub fn args() -> App<'static, 'static> {
         )
 }
 
-pub struct Lc3ToolsObjFile {
-    version: [u8; 2],
-    memory_entries: Vec<MemEntry>,
-}
-
-struct MemEntry {
-    word: Word,
-    orig: bool,
-    line: String,
-}
-
-impl MemEntry {
-    fn new(word: Word, orig: bool, line: String) -> Self {
-        Self { word, orig, line }
-    }
-}
-
-const HEADER: [u8; 5] = [0x1c, 0x30, 0x15, 0xc0, 0x01];
-const TESTED_VERSION: [u8; 2] = [0x01, 0x01];
-
-// const INSN_SEPERATOR: [u8; 5] = [0x00, 0x11, 0x00, 0x00, 0x00];
-
-fn read_mem_entry(file: &mut File) -> std::io::Result<MemEntry> {
-    let word = file.read_u16::<LittleEndian>()?;
-    let orig = file.read_u8()?;
-
-    let orig = match orig {
-        0 => false,
-        1 => true,
-        _ => panic!("Invalid orig field!"),
-    };
-
-    let str_len = file.read_u32::<LittleEndian>()?;
-    let mut line = String::with_capacity(str_len as usize);
-
-    file.take(str_len as u64).read_to_string(&mut line)?;
-
-    Ok(MemEntry::new(word, orig, line))
-}
-
-fn print_mem_entries<'a>(mem_entries: impl Iterator<Item = &'a MemEntry>) {
-    mem_entries.for_each(|m| {
-        if m.orig {
-            print!("<orig: {:04X}>", m.word);
-        } else {
-            print!("<{:04X}>", m.word)
-        }
-
-        println!("  {}", m.line);
-    })
-}
-
-fn mem_entries_to_loadable<'a>(
-    mem_entries: impl Iterator<Item = &'a MemEntry>,
-) -> Vec<(Addr, Word)> {
-    let mut addr = 0x0000;
-    mem_entries
-        .filter_map(|m| {
-            if m.orig {
-                addr = m.word;
-                None
-            } else {
-                let a = addr;
-                addr += 1;
-
-                Some((a, m.word))
-            }
-        })
-        .collect()
-}
-
 fn print_loadable<'a>(loadable: impl Iterator<Item = &'a (Addr, Word)>) {
     loadable.for_each(|(a, w)| {
         if let Ok(insn) = Instruction::try_from(*w) {
@@ -110,46 +43,34 @@ fn print_loadable<'a>(loadable: impl Iterator<Item = &'a (Addr, Word)>) {
     })
 }
 
-fn main() -> std::io::Result<()> {
-    let matches = args().get_matches();
-
-    let file = matches.value_of("input").expect("filename is required");
-    let mut file = File::open(file)?;
-
-    let mut header_buffer: [u8; 5] = [0; 5];
-    file.read_exact(&mut header_buffer)?;
-
-    if header_buffer != HEADER {
-        panic!("Incorrect header.");
+fn try_format<F: ObjFileFormat, P: Copy + AsRef<Path>>(path: P) -> std::io::Result<F::Parsed> {
+    if !F::file_matches_format(&mut File::open(path)?) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Can't parse with this object file format.",
+        ));
     }
 
-    let mut version: [u8; 2] = [0; 2];
-    file.read_exact(&mut version)?;
+    let parsed = F::parse(&mut File::open(path)?)?;
 
-    if version != TESTED_VERSION {
-        eprintln!(
-            "Warning! Untested object file version. ({:?})",
-            TESTED_VERSION
-        );
-    }
+    println!("Parsed as {}:", F::NAME);
+    println!("{}", parsed);
 
-    let mut memory_entries = Vec::<MemEntry>::new();
-
-    while let Ok(mem_entry) = read_mem_entry(&mut file) {
-        memory_entries.push(mem_entry);
-    }
-
-    println!("Memory Entries:");
-    print_mem_entries(memory_entries.iter());
-
-    println!("\nLoadable:");
-    let loadable = mem_entries_to_loadable(memory_entries.iter());
+    let loadable: Vec<Loadable> = parsed.clone().into();
+    println!("As a loadable:");
     print_loadable(loadable.iter());
 
-    let _ = Lc3ToolsObjFile {
-        version,
-        memory_entries,
-    };
+    Ok(parsed)
+}
+
+fn main() -> std::io::Result<()> {
+    let matches = args().get_matches();
+    let path = matches.value_of("input").expect("filename is required");
+
+    if let Err(_) = try_format::<Lc3Tools, _>(path) {
+        eprintln!("Failed to parse as {}; trying to parse as {}:", Lc3Tools::NAME, Lumetta::NAME);
+        try_format::<Lumetta, _>(path)?;
+    }
 
     Ok(())
 }
