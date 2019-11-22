@@ -46,13 +46,13 @@ pub trait ObjFileFormat {
 //        let mut mem: [Word; ADDR_SPACE_SIZE_IN_WORDS] = [0u16; ADDR_SPACE_SIZE_IN_WORDS];
 
         for &(addr, word) in pairs.iter() {
-            mem[addr as usize] = word;
+            mem[addr] = word;
         }
 
         let mut file = File::create(path)?;
 
-        for word in mem.iter() {
-            file.write_u16::<LittleEndian>(*word)?
+        for i in 0..=65535 {
+            file.write_u16::<LittleEndian>(mem[i])?
         }
 
         Ok(())
