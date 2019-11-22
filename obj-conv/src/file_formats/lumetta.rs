@@ -5,9 +5,9 @@ use super::{IoResult, Loadable, ObjFileFormat};
 
 use lc3_isa::Addr;
 
+use std::convert::TryInto;
 use std::fmt::{self, Display};
 use std::fs::File;
-use std::convert::TryInto;
 
 use byteorder::{LittleEndian, ReadBytesExt};
 
@@ -53,7 +53,8 @@ impl ObjFileFormat for Lumetta {
             panic!("Invalid object file.");
         }
 
-        let mut pairs: Vec<Loadable> = Vec::with_capacity(((file.metadata()?.len() / 2) - 1).try_into().unwrap());
+        let mut pairs: Vec<Loadable> =
+            Vec::with_capacity(((file.metadata()?.len() / 2) - 1).try_into().unwrap());
         let mut addr: Addr = file.read_u16::<LittleEndian>()?;
 
         while let Ok(word) = file.read_u16::<LittleEndian>() {

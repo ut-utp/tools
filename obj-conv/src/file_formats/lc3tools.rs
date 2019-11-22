@@ -1,12 +1,11 @@
 /// [`ObjFileFormat`](super::ObjFileFormat) implementation for
 /// [LC3Tools](https://github.com/chiragsakhuja/lc3tools).
-
 use super::{IoResult, Loadable, ObjFileFormat};
 use lc3_isa::Word;
 
+use std::fmt::{self, Display};
 use std::fs::File;
 use std::io::Read;
-use std::fmt::{self, Display};
 
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
 
@@ -49,14 +48,17 @@ impl Lc3ToolsObjFile {
 
 impl Display for Lc3ToolsObjFile {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.memory_entries.iter().try_for_each(|m| Display::fmt(m, fmt))
+        self.memory_entries
+            .iter()
+            .try_for_each(|m| Display::fmt(m, fmt))
     }
 }
 
 impl From<Lc3ToolsObjFile> for Vec<Loadable> {
     fn from(obj: Lc3ToolsObjFile) -> Self {
         let mut addr = 0x0000;
-        obj.memory_entries.iter()
+        obj.memory_entries
+            .iter()
             .filter_map(|m| {
                 if m.orig {
                     addr = m.word;
@@ -111,7 +113,6 @@ impl ObjFileFormat for Lc3Tools {
         } else {
             false
         }
-
     }
 
     fn parse(file: &mut File) -> IoResult<Self::Parsed> {
