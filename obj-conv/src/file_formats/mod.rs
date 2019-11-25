@@ -44,7 +44,6 @@ pub trait ObjFileFormat {
         let mut mem: FileBackedMemoryShim;
         if with_os {
             let os_path: String = format!("lc3os.mem");
-            println!("test");
             mem = FileBackedMemoryShim::from_existing_file(&os_path).unwrap();
             mem.change_file(path);
         } else {
