@@ -517,11 +517,11 @@ OS_START LD R6,OS_SP            ; set system stack pointer
     LEA R0,OS_START_MSG    ; print a welcome message
     PUTS
     LD R0,OS_USER_PSR_INIT  ; push the initial psr onto the system stack
-    STR R0,R6, #0
     ADD R6,R6, #-1
+    STR R0,R6, #0
     LD R0,OS_USER_PROG_START    ; push the starting pc onto the system stack
-    STR R0,R6, #0
     ADD R6,R6, #-1
+    STR R0,R6, #0
     RTI     ; RTI starts the program by restoring the pc and psr we just pushed
 OS_START_MSG    .STRINGZ ""
 OS_KBSR    .FILL xFE00
@@ -532,7 +532,7 @@ OS_PSR     .FILL xFFFC
 OS_MCR     .FILL xFFFE
 OS_SP      .FILL x3000
 OS_USER_PROG_START .FILL x3000
-OS_USER_PSR_INIT .FILL x8002
+OS_USER_PSR_INIT .FILL x8302
 MASK_HI    .FILL x7FFF
 LOW_8_BITS .FILL x00FF
 TOUT_R1    .BLKW #1

@@ -58,6 +58,12 @@ fn convert_args() -> App<'static, 'static> {
                 .number_of_values(1)
                 .required(true),
         )
+        .arg(
+            Arg::with_name("without_os")
+                .short("no_os")
+                .help("Do not layer program on top of os.")
+                .long("without_os")
+        )
 }
 
 fn print_loadable<'a>(loadable: impl Iterator<Item = &'a (Addr, Word)>) {
@@ -125,14 +131,15 @@ fn main() -> std::io::Result<()> {
     let matches = convert_args().get_matches();
     let path_read = matches.value_of("read").expect("read path is required");
     let path_write = matches.value_of("write").expect("write path is required");
+    let with_os = !matches.is_present("without_os");
 
-    if let Err(_) = try_convert::<Lc3Tools, _>(path_read, path_write, false) {
+    if let Err(_) = try_convert::<Lc3Tools, _>(path_read, path_write, with_os) {
         eprintln!(
             "Failed to parse as {}; trying to parse as {}:",
             Lc3Tools::NAME,
             Lumetta::NAME
         );
-        try_convert::<Lumetta, _>(path_read, path_write, true)?;
+        try_convert::<Lumetta, _>(path_read, path_write, with_os)?;
     }
 
     Ok(())
