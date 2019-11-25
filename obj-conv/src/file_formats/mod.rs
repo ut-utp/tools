@@ -38,22 +38,24 @@ pub trait ObjFileFormat {
     /// Parses the file into the object file format's parsed type.
     fn parse(file: &mut File) -> IoResult<Self::Parsed>;
 
-    fn convert_to_mem_map<P: AsRef<Path>>(parsed: Self::Parsed, path: P) -> IoResult<()> {
+    fn convert_to_mem_map<P: AsRef<Path>>(parsed: Self::Parsed, path: P, with_os: bool) -> IoResult<()> {
         let pairs: Vec<Loadable> = parsed.into();
 
-        let os_path: String = format!("lc3os.mem");
-        let mut mem = FileBackedMemoryShim::from_existing_file(&os_path).unwrap();
-//        let mut mem: [Word; ADDR_SPACE_SIZE_IN_WORDS] = [0u16; ADDR_SPACE_SIZE_IN_WORDS];
+        let mut mem: FileBackedMemoryShim;
+        if with_os {
+            let os_path: String = format!("lc3os.mem");
+            println!("test");
+            mem = FileBackedMemoryShim::from_existing_file(&os_path).unwrap();
+            mem.change_file(path);
+        } else {
+            mem = FileBackedMemoryShim::new(path);
+        }
 
         for &(addr, word) in pairs.iter() {
             mem[addr] = word;
         }
 
-        let mut file = File::create(path)?;
-
-        for i in 0..=65535 {
-            file.write_u16::<LittleEndian>(mem[i])?
-        }
+        mem.flush();
 
         Ok(())
     }

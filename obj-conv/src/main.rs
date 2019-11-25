@@ -93,6 +93,7 @@ fn try_format<F: ObjFileFormat, P: Copy + AsRef<Path>>(path: P) -> std::io::Resu
 fn try_convert<F: ObjFileFormat, P: Copy + AsRef<Path>>(
     path_read: P,
     path_write: P,
+    with_os: bool
 ) -> std::io::Result<()> {
     if !F::file_matches_format(&mut File::open(path_read)?) {
         return Err(std::io::Error::new(
@@ -103,7 +104,7 @@ fn try_convert<F: ObjFileFormat, P: Copy + AsRef<Path>>(
 
     let parsed = F::parse(&mut File::open(path_read)?)?;
 
-    let result = F::convert_to_mem_map(parsed, path_write)?;
+    let result = F::convert_to_mem_map(parsed, path_write, with_os)?;
 
     Ok(result)
 }
@@ -125,13 +126,13 @@ fn main() -> std::io::Result<()> {
     let path_read = matches.value_of("read").expect("read path is required");
     let path_write = matches.value_of("write").expect("write path is required");
 
-    if let Err(_) = try_convert::<Lc3Tools, _>(path_read, path_write) {
+    if let Err(_) = try_convert::<Lc3Tools, _>(path_read, path_write, false) {
         eprintln!(
             "Failed to parse as {}; trying to parse as {}:",
             Lc3Tools::NAME,
             Lumetta::NAME
         );
-        try_convert::<Lumetta, _>(path_read, path_write)?;
+        try_convert::<Lumetta, _>(path_read, path_write, true)?;
     }
 
     Ok(())
