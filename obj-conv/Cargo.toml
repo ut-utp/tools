@@ -1,11 +1,34 @@
 [package]
 name = "obj-conv"
 version = "0.1.0"
-authors = ["Rahul Butani <rr.butani@gmail.com>"]
+authors = ["UT UTP <ut.utp.group@gmail.com>"]
 edition = "2018"
 
+description = "An instruction level simulator for the LC-3."
+homepage = "https://ut-utp.github.io"
+repository = "http://github.com/ut-utp/prototype"
+
+readme = "README.md"
+
+keywords = ["lc-3", "object-file", "utp"]
+categories = ["no-std", "simulation"]
+
+license = "MPL-2.0"
+
+
+[badges]
+# github-actions = { repository = "ut-utp/tools", workflow = "obj-conv" } // TODO!
+codecov = { repository = "ut-utp/tools", branch = "master", service = "github" }
+
+is-it-maintained-issue-resolution = { repository = "ut-utp/tools" }
+is-it-maintained-open-issues = { repository = "ut-utp/tools" }
+maintenance = { status = "actively-developed" }
+
+
 [dependencies]
-lc3-isa = { git = "https://github.com/ut-utp/prototype.git", branch = "feat-tui" }
+lc3-isa = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
 lc3-shims = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
+lc3-os = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
+
 clap = "2.33.0"
 byteorder = "1.3.2"
