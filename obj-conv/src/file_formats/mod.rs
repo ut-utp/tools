@@ -1,17 +1,27 @@
-/// Object File Formats and a trait.
+//! Object File Formats and a trait.
 use super::Loadable;
 
 use lc3_isa::util::LoadableIterator;
 
+pub(crate) use super::IoResult;
 use std::fmt::Display;
 use std::fs::File;
-// use std::ops::Deref;
-pub(crate) use super::IoResult;
 
+/// Interface for a parseable object file format.
 pub trait ObjFileFormat {
+    /// Type that Self::Return can be converted into that also can be turned
+    /// into an Iterator on Loadables (i.e. (Addr, Word) pairs).
+    ///
+    /// Put differently, this type must implement
+    /// IntoIterator<Item = (Addr, Word)>.
     type Parsed: LoadableIterator;
-    // type Return: Deref<Target = Self::Parsed>;
+
+    /// Type that is returned upon parsing.
+    /// Must be printable, clonable, and able to be converted into a type that
+    /// can be converted into Iterator on (Addr, Word) pairs.
     type Return: Into<Self::Parsed> + Display + Clone;
+
+    /// Human readable name of the format.
     const NAME: &'static str;
 
     /// Returns true if the file can be interpreted as the object file format
@@ -31,4 +41,3 @@ pub mod lumetta;
 
 pub use lc3tools::Lc3Tools;
 pub use lumetta::Lumetta;
-

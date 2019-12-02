@@ -1,12 +1,11 @@
 //! TODO!
 
 // TODO: forbid
-#![warn(
+#![forbid(
     bad_style,
     const_err,
     dead_code,
     improper_ctypes,
-    legacy_directory_ownership,
     non_shorthand_field_patterns,
     no_mangle_generic_items,
     overflowing_literals,
@@ -14,9 +13,7 @@
     patterns_in_fns_without_body,
     plugin_as_library,
     private_in_public,
-    safe_extern_statics,
     unconditional_recursion,
-    unused,
     unused_allocation,
     unused_lifetimes,
     unused_comparisons,
@@ -24,7 +21,8 @@
     while_true
 )]
 // TODO: deny
-#![warn(
+#![deny(
+    unused,
     missing_debug_implementations,
     intra_doc_link_resolution_failure,
     missing_docs,
@@ -40,19 +38,19 @@
 #![doc(test(attr(deny(warnings))))]
 #![doc(html_logo_url = "")] // TODO!
 
-
-use lc3_isa::{Addr, Instruction, Word};
 use lc3_isa::util::MemoryDump;
-use lc3_shims::memory::FileBackedMemoryShim;
+use lc3_isa::{Addr, Instruction, Word};
 use lc3_os::OS_IMAGE;
+use lc3_shims::memory::FileBackedMemoryShim;
 
 use std::convert::TryFrom;
 use std::fs::File;
-use std::path::Path;
 use std::io::Result as IoResult;
+use std::path::Path;
 
 use clap::{App, AppSettings, Arg};
 
+/// A simple address word pair.
 pub type Loadable = (Addr, Word);
 
 pub mod file_formats;
@@ -92,7 +90,7 @@ fn args() -> App<'static, 'static> {
             Arg::with_name("without-os")
                 .short("w")
                 .help("Do not layer program on top of an OS.")
-                .long("without-os")
+                .long("without-os"),
         )
         .arg(
             Arg::with_name("custom-os")
@@ -100,13 +98,13 @@ fn args() -> App<'static, 'static> {
                 .help("Custom memory dump to use as the OS. Overrides the default OS.")
                 .long("custom-os")
                 .value_names(&["FILE"])
-                .number_of_values(1)
+                .number_of_values(1),
         )
         .arg(
             Arg::with_name("verbose")
                 .short("v")
                 .help("Print out parsed object file.")
-                .long("verbose")
+                .long("verbose"),
         )
 }
 
@@ -120,34 +118,22 @@ fn print_loadable(loadable: impl Iterator<Item = (Addr, Word)>) {
     })
 }
 
-trait If { fn t<F: FnOnce()>(&self, func: F); }
-
-impl If for bool {
-    fn t<F: FnOnce()>(&self, func: F) { if *self { func() } }
+trait If {
+    fn t<F: FnOnce()>(&self, func: F);
 }
 
-    // fn convert_to_mem_map<P: AsRef<Path>>(parsed: Self::Parsed, path: P, with_os: bool) -> IoResult<()> {
-    //     let pairs: Vec<Loadable> = parsed.into();
+impl If for bool {
+    fn t<F: FnOnce()>(&self, func: F) {
+        if *self {
+            func()
+        }
+    }
+}
 
-    //     let mut mem: FileBackedMemoryShim;
-    //     if with_os {
-    //         let os_path: String = format!("lc3os.mem");
-    //         mem = FileBackedMemoryShim::from_existing_file(&os_path).unwrap();
-    //         mem.change_file(path);
-    //     } else {
-    //         mem = FileBackedMemoryShim::new(path);
-    //     }
-
-    //     for &(addr, word) in pairs.iter() {
-    //         mem[addr] = word;
-    //     }
-
-    //     mem.flush();
-
-    //     Ok(())
-    // }
-
-fn try_format<F: ObjFileFormat, P: Copy + AsRef<Path>>(path: P, verbose: bool) -> std::io::Result<F::Parsed> {
+fn try_format<F: ObjFileFormat, P: Copy + AsRef<Path>>(
+    path: P,
+    verbose: bool,
+) -> std::io::Result<F::Parsed> {
     if !F::file_matches_format(&mut File::open(path)?) {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
@@ -169,37 +155,6 @@ fn try_format<F: ObjFileFormat, P: Copy + AsRef<Path>>(path: P, verbose: bool) -
     Ok(returned.into())
 }
 
-// fn try_convert<F: ObjFileFormat, P: Copy + AsRef<Path>>(
-//     path_read: P,
-//     path_write: P,
-//     with_os: bool
-// ) -> std::io::Result<()> {
-//     if !F::file_matches_format(&mut File::open(path_read)?) {
-//         return Err(std::io::Error::new(
-//             std::io::ErrorKind::InvalidData,
-//             "Can't parse with this object file format.",
-//         ));
-//     }
-
-//     let parsed = F::parse(&mut File::open(path_read)?)?;
-
-//     let result = F::convert_to_mem_map(parsed, path_write, with_os)?;
-
-//     Ok(result)
-// }
-
-//fn main() -> std::io::Result<()> {
-//    let matches = args().get_matches();
-//    let path = matches.value_of("input").expect("filename is required");
-//
-//    if let Err(_) = try_format::<Lc3Tools, _>(path) {
-//        eprintln!("Failed to parse as {}; trying to parse as {}:", Lc3Tools::NAME, Lumetta::NAME);
-//        try_format::<Lumetta, _>(path)?;
-//    }
-//
-//    Ok(())
-//}
-
 enum OsStrategy<'a> {
     Default,
     Custom(&'a str),
@@ -217,22 +172,27 @@ impl<'a> OsStrategy<'a> {
         }
     }
 
-    fn to_memory_dump(self) -> MemoryDump {
+    fn make_memory_dump(self) -> MemoryDump {
         use OsStrategy::*;
 
         match self {
             Default => OS_IMAGE.clone(),
-            Custom(ref path) => FileBackedMemoryShim::from_existing_file(path).expect("a valid OS image").into(),
+            Custom(ref path) => FileBackedMemoryShim::from_existing_file(path)
+                .expect("a valid OS image")
+                .into(),
             None => MemoryDump::blank(),
-
         }
     }
 }
 
 fn main() -> IoResult<()> {
     let matches = args().get_matches();
-    let input_path = matches.value_of("input").expect("input object file is required");
-    let output_path = matches.value_of("output").expect("output object file is required");
+    let input_path = matches
+        .value_of("input")
+        .expect("input object file is required");
+    let output_path = matches
+        .value_of("output")
+        .expect("output object file is required");
 
     let verbose = matches.is_present("verbose");
 
@@ -241,20 +201,20 @@ fn main() -> IoResult<()> {
 
     let program: Vec<Loadable> = try_format::<Lc3Tools<'_>, _>(input_path, verbose)
         .map(|l| l.into_iter().collect())
-        .or_else(|_|{
+        .or_else(|_| {
             eprintln!(
                 "Failed to parse as {}; trying to parse as {}:",
                 Lc3Tools::NAME,
                 <&Lumetta>::NAME
             );
-            try_format::<&Lumetta, _>(input_path, verbose)
-                .map(|l| l.into_iter().collect())
+            try_format::<&Lumetta, _>(input_path, verbose).map(|l| l.into_iter().collect())
         })?;
 
-    let mut image: MemoryDump = OsStrategy::new(with_os, custom_os_path)
-        .to_memory_dump();
+    let mut image: MemoryDump = OsStrategy::new(with_os, custom_os_path).make_memory_dump();
 
     let _ = image.layer_loadable(program);
 
-    FileBackedMemoryShim::with_initialized_memory(output_path, image).flush().map_err(|_| std::io::Error::last_os_error())
+    FileBackedMemoryShim::with_initialized_memory(output_path, image)
+        .flush()
+        .map_err(|_| std::io::Error::last_os_error())
 }

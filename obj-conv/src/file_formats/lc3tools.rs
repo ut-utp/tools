@@ -1,18 +1,17 @@
-/// [`ObjFileFormat`](super::ObjFileFormat) implementation for
-/// [LC3Tools](https://github.com/chiragsakhuja/lc3tools).
+//! [`ObjFileFormat`](super::ObjFileFormat) implementation for
+//! [LC3Tools](https://github.com/chiragsakhuja/lc3tools).
 use super::{IoResult, Loadable, ObjFileFormat};
-use lc3_isa::{Addr, Word};
+use lc3_isa::Word;
 
 use std::fmt::{self, Display};
 use std::fs::File;
 use std::io::Read;
-use std::iter::FilterMap;
-use std::slice::Iter;
 use std::marker::PhantomData;
 
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// A single memory entry in an [`Lc3ToolsObjFile`](Lc3ToolsObjFile).
 pub struct MemEntry {
     word: Word,
     orig: bool,
@@ -38,6 +37,7 @@ impl Display for MemEntry {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// Object File type for [`Lc3Tools`](Lc3Tools).
 pub struct Lc3ToolsObjFile<'a> {
     version: [u8; 2],
     memory_entries: Vec<MemEntry>,
@@ -46,6 +46,8 @@ pub struct Lc3ToolsObjFile<'a> {
 }
 
 impl Lc3ToolsObjFile<'_> {
+    /// Returns the version of the encoding used for the object file that was
+    /// parsed.
     pub fn get_version(&self) -> u16 {
         LittleEndian::read_u16(&self.version)
     }
@@ -76,68 +78,12 @@ impl From<Lc3ToolsObjFile<'_>> for Vec<Loadable> {
                 }
             })
             .collect()
-        // obj.into_iter()
-        //     .collect()
     }
 }
 
-// struct IteratorWrapper<'a, Item> {
-//     // vec: &'a Vec<Item>,
-//     iter: Option<&'a mut dyn Iterator<Item = Item>>,
-// }
-
-// impl<'a, I> Iterator for IteratorWrapper<'a, I> {
-//     type Item = I;
-
-//     fn next(&mut self) -> Option<I> {
-//         self.iter.unwrap().next()
-//     }
-// }
-
-// impl<'a> IntoIterator for Lc3ToolsObjFile<'a> {
-//     type Item = Loadable;
-//     // type IntoIter = FilterMap<Iter<'a, MemEntry>, &'a (dyn Fn(&MemEntry) -> Option<Loadable> + 'a)>;
-//     type IntoIter = IteratorWrapper<'a, Loadable>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         use std::sync::atomic::{AtomicU16, Ordering::SeqCst};
-//         let addr = AtomicU16::new(0x0000);
-
-//         // let func: &(dyn Fn(&MemEntry) -> Option<Loadable>) = &move |m: &MemEntry| {
-//         //     if m.orig {
-//         //         addr.store(m.word, SeqCst);
-//         //         None
-//         //     } else {
-//         //         let a = addr.load(SeqCst);
-//         //         addr.store(a + 1, SeqCst);
-
-//         //         Some((a, m.word))
-//         //     }
-//         // };
-
-//         let vec: Vec<Loadable> = self.memory_entries
-//             .iter()
-//             .filter_map(&move |m: &MemEntry| {
-//                 if m.orig {
-//                     addr.store(m.word, SeqCst);
-//                     None
-//                 } else {
-//                     let a = addr.load(SeqCst);
-//                     addr.store(a + 1, SeqCst);
-
-//                     Some((a, m.word))
-//                 }
-//             }).collect();
-
-//         let mut v = IteratorWrapper { vec: vec.clone(), iter: None };
-
-//         v.iter = Some(&mut vec.iter().map(|(addr, word)| (*addr, *word)));
-
-//         v
-//     }
-// }
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// [`ObjFileFormat`](super::ObjFileFormat) implementation for
+/// [LC3Tools](https://github.com/chiragsakhuja/lc3tools).
 pub struct Lc3Tools<'a>(PhantomData<&'a ()>);
 
 impl Lc3Tools<'_> {
@@ -159,7 +105,7 @@ impl Lc3Tools<'_> {
         let str_len = file.read_u32::<LittleEndian>()?;
         let mut line = String::with_capacity(str_len as usize);
 
-        file.take(str_len as u64).read_to_string(&mut line)?;
+        let _ = file.take(str_len as u64).read_to_string(&mut line)?;
 
         Ok(MemEntry::new(word, orig, line))
     }
@@ -172,7 +118,7 @@ impl<'a> ObjFileFormat for Lc3Tools<'a> {
 
     fn file_matches_format(file: &mut File) -> bool {
         let mut header_buffer: [u8; 5] = [0; 5];
-        if let Ok(_) = file.read_exact(&mut header_buffer) {
+        if file.read_exact(&mut header_buffer).is_ok() {
             header_buffer == Lc3Tools::HEADER
         } else {
             false
@@ -203,8 +149,7 @@ impl<'a> ObjFileFormat for Lc3Tools<'a> {
         Ok(Lc3ToolsObjFile {
             version,
             memory_entries,
-            // pos: None,
-            _p: PhantomData
+            _p: PhantomData,
         })
     }
 }

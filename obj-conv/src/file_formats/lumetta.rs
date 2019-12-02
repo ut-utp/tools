@@ -1,6 +1,6 @@
-/// [`ObjFileFormat`](super::ObjFileFormat) implementation for the file format
-/// used by [Steven S. Lumetta's assembler and simulator]
-/// (http://highered.mheducation.com/sites/0072467509/student_view0/lc-3_simulator.html).
+//! [`ObjFileFormat`](super::ObjFileFormat) implementation for the file format
+//! used by [Steven S. Lumetta's assembler and simulator]
+//! (http://highered.mheducation.com/sites/0072467509/student_view0/lc-3_simulator.html).
 use super::{IoResult, Loadable, ObjFileFormat};
 
 use lc3_isa::Addr;
@@ -8,13 +8,12 @@ use lc3_isa::Addr;
 use std::convert::TryInto;
 use std::fmt::{self, Display};
 use std::fs::File;
-use std::iter::Map;
-use std::slice::Iter;
 use std::marker::PhantomData;
 
 use byteorder::{BigEndian, ReadBytesExt};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// Object File type for [`Lumetta`](Lumetta).
 pub struct LumettaObjFile<'a> {
     pairs: Vec<Loadable>,
     _p: PhantomData<&'a ()>,
@@ -34,20 +33,13 @@ impl From<LumettaObjFile<'_>> for Vec<Loadable> {
     }
 }
 
-// impl<'a> IntoIterator for LumettaObjFile<'a> {
-//     type Item = Loadable;
-//     type IntoIter = Map<Iter<'a, Loadable>, &'a dyn Fn(&Loadable) -> Loadable>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         self.pairs.iter().map(&|(addr, word)| (*addr, *word))
-//     }
-// }
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// [`ObjFileFormat`](super::ObjFileFormat) implementation for the file format
+/// used by [Steven S. Lumetta's assembler and simulator]
+/// (http://highered.mheducation.com/sites/0072467509/student_view0/lc-3_simulator.html).
 pub struct Lumetta;
 
 impl<'a> ObjFileFormat for &'a Lumetta {
-    // type Parsed = LumettaObjFile<'a>;
     type Parsed = Vec<Loadable>;
     type Return = LumettaObjFile<'a>;
     const NAME: &'static str = "an Object File for Steven S. Lumetta's simulator and assembler";
@@ -79,6 +71,9 @@ impl<'a> ObjFileFormat for &'a Lumetta {
             addr += 1;
         }
 
-        Ok(LumettaObjFile { pairs, _p: PhantomData })
+        Ok(LumettaObjFile {
+            pairs,
+            _p: PhantomData,
+        })
     }
 }
