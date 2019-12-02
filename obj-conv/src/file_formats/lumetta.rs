@@ -8,33 +8,48 @@ use lc3_isa::Addr;
 use std::convert::TryInto;
 use std::fmt::{self, Display};
 use std::fs::File;
+use std::iter::Map;
+use std::slice::Iter;
+use std::marker::PhantomData;
 
-use byteorder::{LittleEndian, ReadBytesExt};
+use byteorder::{BigEndian, ReadBytesExt};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct LumettaObjFile {
+pub struct LumettaObjFile<'a> {
     pairs: Vec<Loadable>,
+    _p: PhantomData<&'a ()>,
 }
 
-impl Display for LumettaObjFile {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+impl Display for LumettaObjFile<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.pairs
             .iter()
             .try_for_each(|(addr, word)| writeln!(fmt, "<{:04X}>: {:04X}", addr, word))
     }
 }
 
-impl From<LumettaObjFile> for Vec<Loadable> {
-    fn from(obj: LumettaObjFile) -> Self {
+impl From<LumettaObjFile<'_>> for Vec<Loadable> {
+    fn from(obj: LumettaObjFile<'_>) -> Self {
         obj.pairs
     }
 }
 
+// impl<'a> IntoIterator for LumettaObjFile<'a> {
+//     type Item = Loadable;
+//     type IntoIter = Map<Iter<'a, Loadable>, &'a dyn Fn(&Loadable) -> Loadable>;
+
+//     fn into_iter(self) -> Self::IntoIter {
+//         self.pairs.iter().map(&|(addr, word)| (*addr, *word))
+//     }
+// }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Lumetta;
 
-impl ObjFileFormat for Lumetta {
-    type Parsed = LumettaObjFile;
+impl<'a> ObjFileFormat for &'a Lumetta {
+    // type Parsed = LumettaObjFile<'a>;
+    type Parsed = Vec<Loadable>;
+    type Return = LumettaObjFile<'a>;
     const NAME: &'static str = "an Object File for Steven S. Lumetta's simulator and assembler";
 
     fn file_matches_format(file: &mut File) -> bool {
@@ -48,20 +63,22 @@ impl ObjFileFormat for Lumetta {
         }
     }
 
-    fn parse(file: &mut File) -> IoResult<Self::Parsed> {
+    fn parse(file: &mut File) -> IoResult<Self::Return> {
         if !Self::file_matches_format(file) {
             panic!("Invalid object file.");
         }
 
         let mut pairs: Vec<Loadable> =
             Vec::with_capacity(((file.metadata()?.len() / 2) - 1).try_into().unwrap());
-        let mut addr: Addr = file.read_u16::<LittleEndian>()?;
+        let mut addr: Addr = file.read_u16::<BigEndian>()?;
 
-        while let Ok(word) = file.read_u16::<LittleEndian>() {
+        println!("ORIG: {:#4X}", addr);
+
+        while let Ok(word) = file.read_u16::<BigEndian>() {
             pairs.push((addr, word));
             addr += 1;
         }
 
-        Ok(LumettaObjFile { pairs })
+        Ok(LumettaObjFile { pairs, _p: PhantomData })
     }
 }
