@@ -1,0 +1,10 @@
+[package]
+name = "slidedeck"
+version = "0.1.0"
+authors = ["Rahul Butani <rr.butani@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+lc3-isa = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
+lc3-shims = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
+lc3-os = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
