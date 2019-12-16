@@ -1,9 +1,24 @@
+//! Helper functions and the actual slide deck LC-3 program.
 
 use lc3_isa::{self, Addr, Word, SignedWord, util::{AssembledProgram, MemoryDump}};
-use lc3_os::{OS_IMAGE};
+use lc3_os::OS_IMAGE;
 
-const STARTING: Addr = 0x3100;
+use std::convert::TryInto;
 
+/// Starting address of the data section of the slide deck memory image.
+///
+/// This can be anything so long as it's in user space and doesn't overlap with
+/// the actual program part of the image.
+pub const STARTING: Addr = 0x3100;
+
+/// Turns a slide (i.e a string with width * height characters) into the packed
+/// format that the slide deck program uses.
+///
+/// `permissive` controls whether this function will panic if slides don't match
+/// the number of characters specified (height * width).
+///
+/// If permissive is true, extra characters are ignored and unspecified
+/// characters are uninitialized in memory (i.e. they're just `'\0'`).
 fn slide((width, height): (usize, usize), mut addr: Addr, slide: &str, permissive: bool) -> Vec<(Addr, Word)> {
     if !permissive {
         assert_eq!(slide.len(), width * height, "size mismatch (expected {}, got {}) on: `{}`", width * height, slide.len(), slide);
@@ -17,7 +32,19 @@ fn slide((width, height): (usize, usize), mut addr: Addr, slide: &str, permissiv
     }).collect()
 }
 
+#[allow(clippy::cognitive_complexity)]
+/// The slide deck program, parameterized by the number of slides and height
+/// and the width of the slides.
 fn base_program((width, height): (usize, usize), num_slides: Word) -> AssembledProgram {
+    #[allow(clippy::cast_sign_loss)]
+    fn neg_character(c: u8) -> Word {
+        (-(TryInto::<SignedWord>::try_into(c).unwrap())) as Word
+    }
+
+    let width: Word = width.try_into().unwrap();
+    let height: Word = height.try_into().unwrap();
+
+    #[allow(clippy::cast_sign_loss)]
     (lc3_isa::program! {
         .ORIG #0x3000;
 
@@ -97,26 +124,37 @@ fn base_program((width, height): (usize, usize), num_slides: Word) -> AssembledP
             BRnzp @LOOP; // And again
 
         @NEWLINE .FILL #('\n' as Word);
-        @NEG_LETTER_A .FILL #((-('a' as SignedWord)) as Word);
-        @NEG_LETTER_D .FILL #((-('d' as SignedWord)) as Word);
-        @NEG_LETTER_R .FILL #((-('r' as SignedWord)) as Word);
+        @NEG_LETTER_A .FILL #neg_character(b'a');
+        @NEG_LETTER_D .FILL #neg_character(b'd');
+        @NEG_LETTER_R .FILL #neg_character(b'r');
 
         @STARTING_PTR .FILL #STARTING;
         @NUM_SLIDES .FILL #num_slides;
-        @WIDTH .FILL #(width as Word);
-        @HEIGHT .FILL #(height as Word);
-        @NEG_SLIDE_LEN .FILL #((-((height * width) as SignedWord)) as Word);
+        @WIDTH .FILL #width;
+        @HEIGHT .FILL #height;
+        @NEG_SLIDE_LEN .FILL #(
+            (-(TryInto::<SignedWord>::try_into(height * width).unwrap())) as Word
+        );
     }).into()
 }
 
+/// Given a slide deck and some dimensions, this produces an image containing
+/// the slides and the slide deck program.
+///
+/// `dimensions` is (height, width).
+///
+/// `permissive` controls whether slides with an "incorrect" number of
+/// characters (not equal to height * width) are accepted. See `[slide]` for
+/// more details.
+#[must_use]
 pub fn make_image(dimensions: (usize, usize), slides: &[&str], permissive: bool) -> MemoryDump {
     let mut image = OS_IMAGE.clone();
     let slide_len = dimensions.0 * dimensions.1;
 
-    image.layer_loadable(base_program(dimensions, slides.len() as Word).into_iter());
+    let _ = image.layer_loadable(base_program(dimensions, slides.len().try_into().unwrap()).into_iter());
 
     slides.iter().enumerate().for_each(|(idx, s)| {
-        image.layer_loadable(slide(dimensions, STARTING + ((idx * slide_len) as Addr), s, permissive));
+        let _ = image.layer_loadable(slide(dimensions, STARTING + TryInto::<Addr>::try_into(idx * slide_len).unwrap(), s, permissive));
     });
 
     image
