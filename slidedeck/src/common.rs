@@ -23,7 +23,8 @@ pub const STARTING: Addr = 0x3100;
 ///
 /// If permissive is true, extra characters are ignored and unspecified
 /// characters are uninitialized in memory (i.e. they're just `'\0'`).
-fn slide(
+#[must_use]
+pub fn slide(
     (width, height): (usize, usize),
     mut addr: Addr,
     slide: &str,
@@ -165,7 +166,7 @@ fn base_program((width, height): (usize, usize), num_slides: Word) -> AssembledP
 /// `dimensions` is (height, width).
 ///
 /// `permissive` controls whether slides with an "incorrect" number of
-/// characters (not equal to height * width) are accepted. See `[slide]` for
+/// characters (not equal to height * width) are accepted. See [`slide`] for
 /// more details.
 #[must_use]
 pub fn make_image(dimensions: (usize, usize), slides: &[&str], permissive: bool) -> MemoryDump {

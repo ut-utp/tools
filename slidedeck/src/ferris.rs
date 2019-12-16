@@ -13,7 +13,7 @@ pub fn slide_deck() -> MemoryDump {
 }
 
 /// Height (in characters) of this slide deck.
-pub const HEIGHT: usize = 11;
+pub const HEIGHT: usize = 10;
 
 /// Width (in characters) of this slide deck.
 pub const WIDTH: usize = 31;
@@ -23,6 +23,8 @@ pub const WIDTH: usize = 31;
 /// by [Diggsey](https://github.com/Diggsey).
 ///
 /// Non-ASCII characters were replaced (just `¬` -> `~`).
+/// Note: `¬` actually does work since it's an extended ASCII character (still
+/// fits in 1 byte).
 #[rustfmt::skip]
 pub static SLIDES: [& str; 68] = [
 concat!(

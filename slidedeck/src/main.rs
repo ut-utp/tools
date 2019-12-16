@@ -1,6 +1,7 @@
 //! A tool that turns text slides into an LC-3 program.
 
 #![warn(clippy::pedantic)]
+#![deny(intra_doc_link_resolution_failure)]
 #![forbid(
     const_err,
     dead_code,
