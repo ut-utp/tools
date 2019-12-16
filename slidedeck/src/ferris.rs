@@ -23,6 +23,7 @@ pub const WIDTH: usize = 31;
 /// by [Diggsey](https://github.com/Diggsey).
 ///
 /// Non-ASCII characters were replaced (just `¬` -> `~`).
+#[rustfmt::skip]
 pub static SLIDES: [& str; 68] = [
 concat!(
 r#"                               "#,

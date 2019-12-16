@@ -1,6 +1,10 @@
 //! Helper functions and the actual slide deck LC-3 program.
 
-use lc3_isa::{self, Addr, Word, SignedWord, util::{AssembledProgram, MemoryDump}};
+use lc3_isa::{
+    self,
+    util::{AssembledProgram, MemoryDump},
+    Addr, SignedWord, Word,
+};
 use lc3_os::OS_IMAGE;
 
 use std::convert::TryInto;
@@ -19,17 +23,33 @@ pub const STARTING: Addr = 0x3100;
 ///
 /// If permissive is true, extra characters are ignored and unspecified
 /// characters are uninitialized in memory (i.e. they're just `'\0'`).
-fn slide((width, height): (usize, usize), mut addr: Addr, slide: &str, permissive: bool) -> Vec<(Addr, Word)> {
+fn slide(
+    (width, height): (usize, usize),
+    mut addr: Addr,
+    slide: &str,
+    permissive: bool,
+) -> Vec<(Addr, Word)> {
     if !permissive {
-        assert_eq!(slide.len(), width * height, "size mismatch (expected {}, got {}) on: `{}`", width * height, slide.len(), slide);
+        assert_eq!(
+            slide.len(),
+            width * height,
+            "size mismatch (expected {}, got {}) on: `{}`",
+            width * height,
+            slide.len(),
+            slide
+        );
     }
 
-    slide.chars().take(width * height).map(|c| {
-        let a = addr;
-        addr += 1;
+    slide
+        .chars()
+        .take(width * height)
+        .map(|c| {
+            let a = addr;
+            addr += 1;
 
-        (a, c as u16)
-    }).collect()
+            (a, c as u16)
+        })
+        .collect()
 }
 
 #[allow(clippy::cognitive_complexity)]
@@ -135,7 +155,8 @@ fn base_program((width, height): (usize, usize), num_slides: Word) -> AssembledP
         @NEG_SLIDE_LEN .FILL #(
             (-(TryInto::<SignedWord>::try_into(height * width).unwrap())) as Word
         );
-    }).into()
+    })
+    .into()
 }
 
 /// Given a slide deck and some dimensions, this produces an image containing
@@ -151,10 +172,16 @@ pub fn make_image(dimensions: (usize, usize), slides: &[&str], permissive: bool)
     let mut image = OS_IMAGE.clone();
     let slide_len = dimensions.0 * dimensions.1;
 
-    let _ = image.layer_loadable(base_program(dimensions, slides.len().try_into().unwrap()).into_iter());
+    let _ = image
+        .layer_loadable(base_program(dimensions, slides.len().try_into().unwrap()).into_iter());
 
     slides.iter().enumerate().for_each(|(idx, s)| {
-        let _ = image.layer_loadable(slide(dimensions, STARTING + TryInto::<Addr>::try_into(idx * slide_len).unwrap(), s, permissive));
+        let _ = image.layer_loadable(slide(
+            dimensions,
+            STARTING + TryInto::<Addr>::try_into(idx * slide_len).unwrap(),
+            s,
+            permissive,
+        ));
     });
 
     image
