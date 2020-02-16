@@ -26,9 +26,9 @@ maintenance = { status = "actively-developed" }
 
 
 [dependencies]
-lc3-isa = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
-lc3-shims = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
-lc3-os = { git = "https://github.com/ut-utp/prototype.git", branch = "staging" }
+lc3-isa = { git = "https://github.com/ut-utp/prototype.git", branch = "master" }
+lc3-shims = { git = "https://github.com/ut-utp/prototype.git", branch = "master" }
+lc3-os = { git = "https://github.com/ut-utp/prototype.git", branch = "master" }
 
 clap = "2.33.0"
 byteorder = "1.3.2"
