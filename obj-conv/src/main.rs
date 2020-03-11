@@ -215,6 +215,6 @@ fn main() -> IoResult<()> {
     let _ = image.layer_loadable(program);
 
     FileBackedMemoryShim::with_initialized_memory(output_path, image)
-        .flush()
+        .flush_all_changes()
         .map_err(|_| std::io::Error::last_os_error())
 }
